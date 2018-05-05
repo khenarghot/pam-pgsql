@@ -29,6 +29,8 @@
 #include "backend_pgsql.h"
 #include "pam_pgsql.h"
 
+#define PARAMETRS_LEN 1023 
+
 static char *
 crypt_makesalt(pw_scheme scheme);
 
@@ -41,39 +43,34 @@ build_conninfo(modopt_t *options)
 	 if(options == NULL)
 		 return NULL;
 
-	 str = (char *) malloc(sizeof(char)*512);
-    memset(str, 0, 512);
+	 str = (char *) malloc(PARAMETRS_LEN + 1);
+	 memset(str, 0, PARAMETRS_LEN + 1);
+
+#ifdef ADD_OPTION_TO_STR
+#error ADD_OPTION_TO_STR  shuld not be defined
+#endif
+
+
+#define ADD_OPTION_TO_STR(name, param) do {                 \
+         if (options->param) {                              \
+             if (strlen(options->param) + strlen(name) +    \
+                 strlen(str) > PARAMETRS_LEN) {             \
+                 return NULL;                               \
+             }                                              \
+             strcat(str, name);                             \
+             strcat(str, options->param);                   \
+         } } while(0);
 
     /* SAFE */
-	 if(options->db) {
-   	 strncat(str, "dbname=", strlen("dbname="));
-   	 strncat(str, options->db, strlen(options->db));
-	 }
+	 ADD_OPTION_TO_STR("dbname=", db);
+	 ADD_OPTION_TO_STR(" host=", host);
+	 ADD_OPTION_TO_STR(" port=", port);
+	 ADD_OPTION_TO_STR(" connect_timeout=", timeout);
+	 ADD_OPTION_TO_STR(" user=", user);
+	 ADD_OPTION_TO_STR(" password=", passwd);
+	 ADD_OPTION_TO_STR(" sslmode=", sslmode);
 
-	if(options->host) {
-		strncat(str, " host=", strlen(" host="));
-		strncat(str, options->host, strlen(options->host));
-	}
-	if(options->port) {
-		strncat(str, " port=", strlen(" port="));
-		strncat(str, options->port, strlen(options->port));
-	}    
-	if(options->timeout) {
-		strncat(str, " connect_timeout=", strlen(" connect_timeout="));
-		strncat(str, options->timeout, strlen(options->timeout));
-	}
-	if(options->user) {
-		strncat(str, " user=", strlen(" user="));
-		strncat(str, options->user, strlen(options->user));
-	}
-	if(options->passwd) {
-		strncat(str, " password=", strlen(" password="));
-		strncat(str, options->passwd, strlen(options->passwd));
-	}
-	if(options->sslmode) {
-		strncat(str, " sslmode=", strlen(" sslmode="));
-		strncat(str, options->sslmode, strlen(options->sslmode));
-	}
+#undef ADD_OPTION_TO_STR
 
 	return str;
 }
@@ -85,6 +82,10 @@ db_connect(modopt_t *options)
 	PGconn *conn;
 	if(options->connstr == NULL)
 		options->connstr = build_conninfo(options);
+	if(options->connstr == NULL) {
+		SYSLOG("Connection parametrs string two long");
+		return NULL;
+	}
 
 	conn = PQconnectdb(options->connstr);
 	if(PQstatus(conn) != CONNECTION_OK) {
