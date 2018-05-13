@@ -23,6 +23,7 @@
 #include <unistd.h>
 #include <netdb.h>
 #include <arpa/inet.h>
+#include <assert.h>
 
 #include <gcrypt.h>
 
@@ -249,7 +250,6 @@ backend_authenticate(const char *service, const char *user, const char *passwd, 
 	PGresult *res;
 	PGconn *conn;
 	int rc;
-	char *tmp;
 
 	if(!(conn = db_connect(options)))
 		return PAM_AUTH_ERR;
@@ -257,15 +257,19 @@ backend_authenticate(const char *service, const char *user, const char *passwd, 
 	DBGLOG("query: %s", options->query_auth);
 	rc = PAM_AUTH_ERR;	
 	if(pg_execParam(conn, &res, options->query_auth, service, user, passwd, rhost) == PAM_SUCCESS) {
-		if(PQntuples(res) == 0) {
+        int nentries = PQntuples (res);
+		if(nentries == 0) {
 			rc = PAM_USER_UNKNOWN;
-		} else if (!PQgetisnull(res, 0, 0)) {
+		} else if (nentries > 1) {
+            SYSLOG("Auth failed. Found more then one entry in query: %s.", options->query_auth);
+        } else if (!PQgetisnull(res, 0, 0)) {
 			char *stored_pw = PQgetvalue(res, 0, 0);
 			if (options->pw_type == PW_FUNCTION) {
 				if (!strcmp(stored_pw, "t")) { rc = PAM_SUCCESS; }
 			} else {
-				if (!strcmp(stored_pw, (tmp = password_encrypt(options, user, passwd, stored_pw)))) rc = PAM_SUCCESS;
-				free (tmp);
+				char *user_pw_hash = password_encrypt(options, user, passwd, stored_pw);
+				if (user_pw_hash != NULL && !strcmp(stored_pw, user_pw_hash)) rc = PAM_SUCCESS;
+				free (user_pw_hash);
 			}
 		}
 		PQclear(res);
@@ -283,16 +287,19 @@ password_encrypt(modopt_t *options, const char *user, const char *pass, const ch
 	switch(options->pw_type) {
 		case PW_CRYPT:
 		case PW_CRYPT_MD5:
-		case PW_CRYPT_SHA512: 
-			if (salt==NULL) {
-				s = strdup(crypt(pass, crypt_makesalt(options->pw_type)));
-			} else {
-				s = strdup(crypt(pass, salt));
-			}
-		break;
+		case PW_CRYPT_SHA256:
+		case PW_CRYPT_SHA512:
+		{
+			if (salt==NULL) 
+				salt = crypt_makesalt(options->pw_type);
+			char *crypted = crypt(pass, salt);
+			if (crypted)
+				s = strdup(crypted);
+		}
+        break;
 		case PW_MD5: {
 			unsigned char hash[16] = { 0, }; /* 16 is the md5 block size */
-			int i;
+			unsigned int i;
 			s = (char *) malloc(33); /* 32 bytes + 1 byte for \0 */
 
 			gcry_md_hash_buffer(GCRY_MD_MD5, hash, pass, strlen(pass));
@@ -307,7 +314,7 @@ password_encrypt(modopt_t *options, const char *user, const char *pass, const ch
 			returned value is md5||md5hash(password||user)
 			*/
 			unsigned char hash[16] = { 0, }; /* 16 is the md5 block size */
-			int i;
+			unsigned int i;
 			s = (char *) malloc(36); /* 3 bytes for "md5" + 32 bytes for the hash + 1 byte for \0 */
 			strncpy(s, "md5", 3);
 
@@ -328,7 +335,7 @@ password_encrypt(modopt_t *options, const char *user, const char *pass, const ch
 		break;
 		case PW_SHA1: {
 			unsigned char hash[20] = { 0, }; /* 20 is the sha1 block size */
-			int i;
+			unsigned int i;
 			s = (char *) malloc(41); /* 40 bytes + 1 byte for \0 */
 
 			gcry_md_hash_buffer(GCRY_MD_SHA1, hash, pass, strlen(pass));
@@ -348,24 +355,39 @@ password_encrypt(modopt_t *options, const char *user, const char *pass, const ch
 static char *
 crypt_makesalt(pw_scheme scheme)
 {
-	static char result[12];
-	int len,pos;
+	static char result[15] = {0};
+	int len, pos;
 	struct timeval now;
 
-	if(scheme==PW_CRYPT){
-		len=2;
-		pos=0;
-	} else if(scheme==PW_CRYPT_SHA512) { /* PW_CRYPT_SHA512 */
-		strcpy (result, "$6$");
+	switch(scheme) {
+	case PW_CRYPT:
+		len = 2;
+		pos = 0;
+		break;
+	case PW_CRYPT_MD5:
+		strcpy(result, "$1$");
+		pos = strlen(result);
 		len = 11;
-		pos = 3;
-	} else { /* PW_CRYPT_MD5 */
-		strcpy(result,"$1$");
-		len=11;
-		pos=3;
+		break;
+	case PW_CRYPT_SHA256:
+		strcpy(result, "$5$");
+		pos = strlen(result);
+		len = 11;
+		break;
+	case PW_CRYPT_SHA512:
+		strcpy(result, "$6$");
+		pos = strlen(result);
+		len = 14;
+		break;
+	default:
+		assert(0);
+		SYSLOG("Unknown pasword crypt scheme, no salt provided DES failsafe");
+		pos = 0;
+		len = 0;
 	}
+
 	gettimeofday(&now,NULL);
-	srandom(now.tv_sec*10000+now.tv_usec/100+clock());
+	srandom(now.tv_sec*10000+now.tv_usec/100+clock()); //XXX: predictable 
 	while(pos<len)result[pos++]=i64c(random()&63);
 	result[len]=0;
 	return result;
