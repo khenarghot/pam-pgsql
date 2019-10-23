@@ -25,6 +25,7 @@
 #include <arpa/inet.h>
 #include <assert.h>
 
+#include <crypt.h>
 #include <gcrypt.h>
 
 #include "backend_pgsql.h"
@@ -47,31 +48,35 @@ build_conninfo(modopt_t *options)
 	 str = (char *) malloc(PARAMETRS_LEN + 1);
 	 memset(str, 0, PARAMETRS_LEN + 1);
 
-#ifdef ADD_OPTION_TO_STR
-#error ADD_OPTION_TO_STR  shuld not be defined
-#endif
+	 if(options->db) {
+		strcat(str, "dbname=");
+		strncat(str, options->db, strlen(options->db));
+	 }
 
-
-#define ADD_OPTION_TO_STR(name, param) do {                 \
-         if (options->param) {                              \
-             if (strlen(options->param) + strlen(name) +    \
-                 strlen(str) > PARAMETRS_LEN) {             \
-                 return NULL;                               \
-             }                                              \
-             strcat(str, name);                             \
-             strcat(str, options->param);                   \
-         } } while(0);
-
-    /* SAFE */
-	 ADD_OPTION_TO_STR("dbname=", db);
-	 ADD_OPTION_TO_STR(" host=", host);
-	 ADD_OPTION_TO_STR(" port=", port);
-	 ADD_OPTION_TO_STR(" connect_timeout=", timeout);
-	 ADD_OPTION_TO_STR(" user=", user);
-	 ADD_OPTION_TO_STR(" password=", passwd);
-	 ADD_OPTION_TO_STR(" sslmode=", sslmode);
-
-#undef ADD_OPTION_TO_STR
+	if(options->host) {
+		strcat(str, " host=");
+		strncat(str, options->host, strlen(options->host));
+	}
+	if(options->port) {
+		strcat(str, " port=");
+		strncat(str, options->port, strlen(options->port));
+	}    
+	if(options->timeout) {
+		strcat(str, " connect_timeout=");
+		strncat(str, options->timeout, strlen(options->timeout));
+	}
+	if(options->user) {
+		strcat(str, " user=");
+		strncat(str, options->user, strlen(options->user));
+	}
+	if(options->passwd) {
+		strcat(str, " password=");
+		strncat(str, options->passwd, strlen(options->passwd));
+	}
+	if(options->sslmode) {
+		strcat(str, " sslmode=");
+		strncat(str, options->sslmode, strlen(options->sslmode));
+	}
 
 	return str;
 }
@@ -316,7 +321,7 @@ password_encrypt(modopt_t *options, const char *user, const char *pass, const ch
 			unsigned char hash[16] = { 0, }; /* 16 is the md5 block size */
 			unsigned int i;
 			s = (char *) malloc(36); /* 3 bytes for "md5" + 32 bytes for the hash + 1 byte for \0 */
-			strncpy(s, "md5", 3);
+			memcpy(s, "md5", 3);
 
 			size_t unencoded_length;
 			char *unencoded;
