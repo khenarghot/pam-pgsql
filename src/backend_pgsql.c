@@ -36,47 +36,56 @@
 static char *
 crypt_makesalt(pw_scheme scheme);
 
+inline static  char*
+update_coninfo(char* coninfo, size_t *len, const char* name, const char* value)
+{
+        size_t pl = strlen(name) + strlen(value) + 3;
+        if (pl + strlen(coninfo) >= *len) {
+                *len += pl;
+                coninfo = realloc(coninfo, *len);
+        }
+        int p = strlen(coninfo);
+        if (p == 0) {
+                sprintf(coninfo, "%s=%s", name, value);
+        }
+        sprintf(coninfo + p, " %s=%s", name, value);
+        return coninfo;
+}
+
 /* very private: used only in get_module_options */
 static char *
 build_conninfo(modopt_t *options)
 {
         char *str;
+        static size_t len = 512;
 
         if(options == NULL)
                 return NULL;
 
-        str = (char *) malloc(sizeof(char)*512);
+        str = (char *) malloc(len);
         memset(str, 0, 512);
 
         /* SAFE */
         if(options->db) {
-                strcat(str, "dbname=");
-                strncat(str, options->db, strlen(options->db));
+                str = update_coninfo(str, &len, "dbname", options->db);
         }
-
         if(options->host) {
-                strcat(str, " host=");
-                strncat(str, options->host, strlen(options->host));
+                str = update_coninfo(str, &len, "host", options->host);
         }
         if(options->port) {
-                strcat(str, " port=");
-                strncat(str, options->port, strlen(options->port));
+                str = update_coninfo(str, &len, "port", options->port);
         }
         if(options->timeout) {
-                strcat(str, " connect_timeout=");
-                strncat(str, options->timeout, strlen(options->timeout));
+                str = update_coninfo(str, &len, "timeout", options->timeout);
         }
         if(options->user) {
-                strcat(str, " user=");
-                strncat(str, options->user, strlen(options->user));
+                str = update_coninfo(str, &len, "user", options->user);
         }
         if(options->passwd) {
-                strcat(str, " password=");
-                strncat(str, options->passwd, strlen(options->passwd));
+                str = update_coninfo(str, &len, "password", options->passwd);
         }
         if(options->sslmode) {
-                strcat(str, " sslmode=");
-                strncat(str, options->sslmode, strlen(options->sslmode));
+                str = update_coninfo(str, &len, "sslmode", options->sslmode);
         }
 
         return str;

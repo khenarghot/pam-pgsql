@@ -294,12 +294,6 @@ modopt_t * mod_options(int argc, const char **argv) {
 
                 }
 
-                <<<<<<< HEAD
-                                }
 
-        return modopt;
-        =======
-                return modopt;
-                >>>>>>> Format fixing
-
-                                }
+                return modopt;                
+}
