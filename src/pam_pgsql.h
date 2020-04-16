@@ -1,6 +1,6 @@
 /*
  * PAM authentication module for PostgreSQL
- * 
+ *
  * Based in part on pam_unix.c of FreeBSD. See COPYRIGHT
  * for licensing details.
  *
@@ -25,15 +25,15 @@
 
 #include <syslog.h>
 
-#define DBGLOG(...)  if(options->debug) {                           \
-                          openlog("PAM_pgsql", LOG_PID, LOG_AUTH);  \
-                          syslog(LOG_DEBUG, __VA_ARGS__);           \
-                          closelog();                               \
-                      }
-#define SYSLOG(...)  do {                                           \
-                          openlog("PAM_pgsql", LOG_PID, LOG_AUTH);  \
-                          syslog(LOG_INFO, __VA_ARGS__);            \
-                          closelog();                               \
-                      } while(0);
+#define DBGLOG(...)  if(options->debug) {                      \
+                openlog("PAM_pgsql", LOG_PID, LOG_AUTH);        \
+                syslog(LOG_DEBUG, ##__VA_ARGS__);                         \
+                closelog();                                     \
+        }
+#define SYSLOG(...)  do {                                      \
+                openlog("PAM_pgsql", LOG_PID, LOG_AUTH);        \
+                syslog(LOG_INFO, ##__VA_ARGS__);                          \
+                closelog();                                     \
+        } while(0);
 
 #endif

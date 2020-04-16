@@ -20,43 +20,43 @@
 #define PAM_OPT_USE_OLDAUTH		0x80
 
 typedef enum {
-    PW_CLEAR = 1,
-    PW_MD5,
-    PW_CRYPT,
-    PW_CRYPT_MD5,
-    PW_CRYPT_SHA256,
-    PW_CRYPT_SHA512,
-    PW_SHA1,
-    PW_MD5_POSTGRES,
-    PW_FUNCTION
+        PW_CLEAR = 1,
+        PW_MD5,
+        PW_CRYPT,
+        PW_CRYPT_MD5,
+        PW_CRYPT_SHA256,
+        PW_CRYPT_SHA512,
+        PW_SHA1,
+        PW_MD5_POSTGRES,
+        PW_FUNCTION
 } pw_scheme;
 
 typedef struct modopt_s {
 
-   char *connstr;
-   char *fileconf;
-   char *host;
-   char *db;
-	char *table;
-	char *timeout;
-   char *user;
-   char *passwd;
-   char *sslmode;
-	char *column_pwd;
-	char *column_user;
-	char *column_expired;
-	char *column_newpwd;
-	char *query_acct;
-	char *query_pwd;
-	char *query_auth;
-	char *query_auth_succ;
-	char *query_auth_fail;
-	char *query_session_open;
-	char *query_session_close;
-   char *port;
-	int pw_type;
-   int debug;
-	int std_flags;
+        char *connstr;
+        char *fileconf;
+        char *host;
+        char *db;
+        char *table;
+        char *timeout;
+        char *user;
+        char *passwd;
+        char *sslmode;
+        char *column_pwd;
+        char *column_user;
+        char *column_expired;
+        char *column_newpwd;
+        char *query_acct;
+        char *query_pwd;
+        char *query_auth;
+        char *query_auth_succ;
+        char *query_auth_fail;
+        char *query_session_open;
+        char *query_session_close;
+        char *port;
+        int pw_type;
+        int debug;
+        int std_flags;
 
 } modopt_t;
 

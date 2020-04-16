@@ -46,5 +46,3 @@ rm -rf $RPM_BUILD_ROOT
 %changelog
 * Sun Jul 13 2008 Jose Arthur Benetasso Villanova <jose.arthur@gmail.com> 0.6.4-1
 - Initial release
-
-

@@ -1,6 +1,6 @@
 /*
  * PAM authentication module for PostgreSQL
- * 
+ *
  * Based in part on pam_unix.c of FreeBSD. See COPYRIGHT
  * for licensing details.
  *
@@ -40,51 +40,53 @@ crypt_makesalt(pw_scheme scheme);
 static char *
 build_conninfo(modopt_t *options)
 {
-    char *str;
+        char *str;
 
-	 if(options == NULL)
-		 return NULL;
+        if(options == NULL)
+                return NULL;
 
-	 str = (char *) malloc(PARAMETRS_LEN + 1);
-	 memset(str, 0, PARAMETRS_LEN + 1);
+        str = (char *) malloc(sizeof(char)*512);
+        memset(str, 0, 512);
 
-	 if(options->db) {
-		strcat(str, "dbname=");
-		strncat(str, options->db, strlen(options->db));
-	 }
+        /* SAFE */
+        if(options->db) {
+                strcat(str, "dbname=");
+                strncat(str, options->db, strlen(options->db));
+        }
 
-	if(options->host) {
-		strcat(str, " host=");
-		strncat(str, options->host, strlen(options->host));
-	}
-	if(options->port) {
-		strcat(str, " port=");
-		strncat(str, options->port, strlen(options->port));
-	}    
-	if(options->timeout) {
-		strcat(str, " connect_timeout=");
-		strncat(str, options->timeout, strlen(options->timeout));
-	}
-	if(options->user) {
-		strcat(str, " user=");
-		strncat(str, options->user, strlen(options->user));
-	}
-	if(options->passwd) {
-		strcat(str, " password=");
-		strncat(str, options->passwd, strlen(options->passwd));
-	}
-	if(options->sslmode) {
-		strcat(str, " sslmode=");
-		strncat(str, options->sslmode, strlen(options->sslmode));
-	}
+        if(options->host) {
+                strcat(str, " host=");
+                strncat(str, options->host, strlen(options->host));
+        }
+        if(options->port) {
+                strcat(str, " port=");
+                strncat(str, options->port, strlen(options->port));
+        }
+        if(options->timeout) {
+                strcat(str, " connect_timeout=");
+                strncat(str, options->timeout, strlen(options->timeout));
+        }
+        if(options->user) {
+                strcat(str, " user=");
+                strncat(str, options->user, strlen(options->user));
+        }
+        if(options->passwd) {
+                strcat(str, " password=");
+                strncat(str, options->passwd, strlen(options->passwd));
+        }
+        if(options->sslmode) {
+                strcat(str, " sslmode=");
+                strncat(str, options->sslmode, strlen(options->sslmode));
+        }
 
-	return str;
+        return str;
 }
 
 /* private: open connection to PostgreSQL */
 PGconn *
 db_connect(modopt_t *options)
 {
+
 	PGconn *conn;
 	if(options->connstr == NULL)
 		options->connstr = build_conninfo(options);
@@ -106,146 +108,146 @@ db_connect(modopt_t *options)
 static int
 expand_query (char **command, const char** values, const char *query, const char *service, const char *user, const char *passwd, const char *rhost, const char *raddr)
 {
-	char *p, *q, *res;
-	unsigned int len;
-	unsigned int nparm=0;
-  
-	if (!query) {
-		*command = NULL;
-		return 0;
-	}
-	/* Compute resulting query length */
-	for (len = 0, p = (char *) query; *p; ) {
-		if (*p == '%') {
-			if (p[1] == 'u' || p[1] == 'p' || p[1] == 's') {
-				len += 4; /*we allow 128 tokens max*/
-				p += 2;
-				continue;
-			} else if (p[1] == '%') {
-				len++;
-				p += 2;
-				continue;
-			}
-		}
-		len++;
-		p++;  
-	}
-	res = malloc (len + 1);
-	if (!res) {
-		*command = NULL;
-		return 0;
-	}
-	for (p = (char *) query, q = res; *p; ) {
-		if (*p == '%') {
-			switch (*++p) {
-				case 'u': {
-					sprintf(q, "$%i", ++nparm);
-					values[nparm-1] = user;
-					q += strlen (q);
-					p++;
-				}
-				break;
-				case 'p': {
-					sprintf(q, "$%i", ++nparm);
-					values[nparm-1] = passwd;
-					q += strlen (q);
-					p++;
-				}
-				break;
-				case 's': {
-					sprintf(q, "$%i", ++nparm);
-					values[nparm-1] = service;
-					q += strlen (q);
-					p++;
-				}
-				break;
-				case 'h': {
-					sprintf(q, "$%i", ++nparm);
-					values[nparm-1] = rhost;
-					q += strlen (q);
-					p++;
-				}
-				break;
-				case 'i': {
-					sprintf(q, "$%i", ++nparm);
-					values[nparm-1] = raddr;
-					q += strlen (q);
-					p++;
-					if (!raddr) {
-						if (strchr(rhost, '.') != NULL) {
-							*command = NULL;
-							free (res);
-							return 0;
-						}
-					}
-				}
-				break;
-				case '%':
-				default:
-					*q++ = *p++;
-				break;
-			}
-		} else	*q++ = *p++;
-	 }
-	 *q = 0;
-	 
-	 *command = res;
-	 values[nparm] = NULL; 
-	 return nparm;
+        char *p, *q, *res;
+        unsigned int len;
+        unsigned int nparm=0;
+
+        if (!query) {
+                *command = NULL;
+                return 0;
+        }
+        /* Compute resulting query length */
+        for (len = 0, p = (char *) query; *p; ) {
+                if (*p == '%') {
+                        if (p[1] == 'u' || p[1] == 'p' || p[1] == 's') {
+                                len += 4; /*we allow 128 tokens max*/
+                                p += 2;
+                                continue;
+                        } else if (p[1] == '%') {
+                                len++;
+                                p += 2;
+                                continue;
+                        }
+                }
+                len++;
+                p++;
+        }
+        res = malloc (len + 1);
+        if (!res) {
+                *command = NULL;
+                return 0;
+        }
+        for (p = (char *) query, q = res; *p; ) {
+                if (*p == '%') {
+                        switch (*++p) {
+                        case 'u': {
+                                sprintf(q, "$%i", ++nparm);
+                                values[nparm-1] = user;
+                                q += strlen (q);
+                                p++;
+                        }
+                                break;
+                        case 'p': {
+                                sprintf(q, "$%i", ++nparm);
+                                values[nparm-1] = passwd;
+                                q += strlen (q);
+                                p++;
+                        }
+                                break;
+                        case 's': {
+                                sprintf(q, "$%i", ++nparm);
+                                values[nparm-1] = service;
+                                q += strlen (q);
+                                p++;
+                        }
+                                break;
+                        case 'h': {
+                                sprintf(q, "$%i", ++nparm);
+                                values[nparm-1] = rhost;
+                                q += strlen (q);
+                                p++;
+                        }
+                                break;
+                        case 'i': {
+                                sprintf(q, "$%i", ++nparm);
+                                values[nparm-1] = raddr;
+                                q += strlen (q);
+                                p++;
+                                if (!raddr) {
+                                        if (strchr(rhost, '.') != NULL) {
+                                                *command = NULL;
+                                                free (res);
+                                                return 0;
+                                        }
+                                }
+                        }
+                                break;
+                        case '%':
+                        default:
+                                *q++ = *p++;
+                                break;
+                        }
+                } else	*q++ = *p++;
+        }
+        *q = 0;
+
+        *command = res;
+        values[nparm] = NULL;
+        return nparm;
 }
 
 /* private: execute query */
 int
-pg_execParam(PGconn *conn, PGresult **res, 
-        const char *query, const char *service, const char *user, const char *passwd, const char *rhost)
+pg_execParam(PGconn *conn, PGresult **res,
+             const char *query, const char *service, const char *user, const char *passwd, const char *rhost)
 {
-	int nparm = 0;
-	const char *values[128];
-	char *command, *raddr;
-	struct hostent *hentry;
+        int nparm = 0;
+        const char *values[128];
+        char *command, *raddr;
+        struct hostent *hentry;
 
-	if (!conn) 
-		return PAM_AUTHINFO_UNAVAIL;
-	bzero(values, sizeof(*values));
-	
-	raddr = NULL;
-	
-	if(rhost != NULL && (hentry = gethostbyname(rhost)) != NULL) {
-		/* Make IP string */
-		raddr = malloc(INET_ADDRSTRLEN);
-		inet_ntop(AF_INET, hentry->h_addr_list[0], raddr, INET_ADDRSTRLEN);
-	}
-	
-	nparm = expand_query(&command, values, query, service, user, passwd, rhost, raddr);
-	if (command == NULL) 
-		return PAM_AUTH_ERR;
-	
-	*res = PQexecParams(conn, command, nparm, 0, values, 0, 0, 0);
-	free (command);
-	free (raddr);
-    
-	if(PQresultStatus(*res) != PGRES_COMMAND_OK && PQresultStatus(*res) != PGRES_TUPLES_OK) {
-		SYSLOG("PostgreSQL query failed: '%s'", PQresultErrorMessage(*res));
-		return PAM_AUTHINFO_UNAVAIL;
-	}
-	return PAM_SUCCESS;
+        if (!conn)
+                return PAM_AUTHINFO_UNAVAIL;
+        bzero(values, sizeof(*values));
+
+        raddr = NULL;
+
+        if(rhost != NULL && (hentry = gethostbyname(rhost)) != NULL) {
+                /* Make IP string */
+                raddr = malloc(INET_ADDRSTRLEN);
+                inet_ntop(AF_INET, hentry->h_addr_list[0], raddr, INET_ADDRSTRLEN);
+        }
+
+        nparm = expand_query(&command, values, query, service, user, passwd, rhost, raddr);
+        if (command == NULL)
+                return PAM_AUTH_ERR;
+
+        *res = PQexecParams(conn, command, nparm, 0, values, 0, 0, 0);
+        free (command);
+        free (raddr);
+
+        if(PQresultStatus(*res) != PGRES_COMMAND_OK && PQresultStatus(*res) != PGRES_TUPLES_OK) {
+                SYSLOG("PostgreSQL query failed: '%s'", PQresultErrorMessage(*res));
+                return PAM_AUTHINFO_UNAVAIL;
+        }
+        return PAM_SUCCESS;
 }
 
 /* private: convert an integer to a radix 64 character */
 static int
 i64c(int i)
 {
-	if (i <= 0)
-		return ('.');
-	if (i == 1)
-		return ('/');
-	if (i >= 2 && i < 12)
-		return ('0' - 2 + i);
-	if (i >= 12 && i < 38)
-		return ('A' - 12 + i);
-	if (i >= 38 && i < 63)
-		return ('a' - 38 + i);
-	return ('z');
+        if (i <= 0)
+                return ('.');
+        if (i == 1)
+                return ('/');
+        if (i >= 2 && i < 12)
+                return ('0' - 2 + i);
+        if (i >= 12 && i < 38)
+                return ('A' - 12 + i);
+        if (i >= 38 && i < 63)
+                return ('a' - 38 + i);
+        return ('z');
 }
 
 /* authenticate user and passwd against database */
